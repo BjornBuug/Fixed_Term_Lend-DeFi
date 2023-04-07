@@ -1,0 +1,7 @@
+[profile.default]
+src = 'src'
+out = 'out'
+libs = ['lib']
+remappings = ['@openzeppelin/=lib/openzeppelin-contracts/']
+
+rpc_endpoints = { mainnet = "https://mainnet.infura.io/v3/184b35311791483b991c8951bb07c56c", optimism = "https://rpc.ankr.com/optimism" , fantom = "https://rpc.ankr.com/fantom", arbitrum = "https://rpc.ankr.com/arbitrum" , bsc = "https://divine-black-wind.bsc.discover.quiknode.pro/64ab050694137dfcbf4c20daec2e94dc515c1d60/" }
