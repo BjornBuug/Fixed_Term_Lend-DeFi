@@ -61,7 +61,7 @@ contract Cooler {
     /************* Immutables ************************/
 
     // owns the address in this escrow 
-    address private immutable owner;
+    address public immutable owner;
 
     // Lent token
     ERC20 public immutable debt;

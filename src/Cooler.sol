@@ -61,7 +61,7 @@ contract Cooler {
     /************* Immutables ************************/
 
     // owns the address in this escrow 
-    address private immutable owner;
+    address public immutable owner;
 
     // Lent token
     ERC20 public immutable debt;
@@ -111,15 +111,17 @@ contract Cooler {
 
         // Emit an Event
         factory.newEvent(reqId, CoolerFactory.Events.Request);
-
+        
     }
 
 
-    function rescindRequest(uint256 reqID) external {
+    function rescind(uint256 reqID) external {
         // Check if the caller is the owner
         if(msg.sender != owner) {
             revert OnlyApproved();
         }
+
+        factory.newEvent(reqID, CoolerFactory.Events.Rescind);
 
         Request storage req = requests[reqID];
 
@@ -127,7 +129,7 @@ contract Cooler {
         if(!req.active) {
             revert Deactivated();
         }
-        
+
         req.active = false;
         // Transer Collateral to the borrower
         collateral.transfer(owner, collateralFor(req.amount, req.loanToCollateral));
@@ -135,21 +137,49 @@ contract Cooler {
     }
 
 
+    /// @notice fill request to the borrower as a lender
+    /// @param reqID index of the requests[]
+    /// @param loanId index of the loans[]
+    function clear(uint256 reqID) external returns(uint loanId) {
+        // Retrieve the req for a specific reqID
+        Request storage req = requests[reqID];
+
+        // Check if the req that lender wants to clear is active(true) if it's not, then we set it to false.
+        if(!req.active) {
+            revert Deactivated();
+        }
+        req.active = false;
+
+        // compute Interest rate for a given amount
+        uint256 interest = interestFor(req.amount, req.interest, req.duration);
+        // compute Collateral
+        uint256 collat = collateralFor(req.amount, req.loanToCollateral);
+        uint256 expiration = block.timestamp + req.duration;
+
+        // Get loanId
+        loanId = loans.length;
+        loans.push(
+            Loan(req, req.amount + interest, collat, expiration, true , msg.sender)
+        );
+        
+        // Transfer the Debt tokens to the borrower
+        debt.transferFrom(msg.sender, owner, req.amount);
+
+        // Emit Event
+        factory.newEvent(reqID, CoolerFactory.Events.Clear);
+    }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+    /// @notice Compute interest COST for a given amount, duration, an annulized rate
+    /// @param amount of debts tokens
+    /// @param rate of interest (annulized)
+    /// @param duration of loan in seconds
+    /// @return the interest rate of the debts tokens
+    function interestFor(uint256 amount, uint256 rate, uint256 duration) external pure returns(uint256) {
+        // Compute interest
+        uint256 interest = rate * duration / 365 days;
+        return amount * interest / decimals;
+    }
 
 
 
@@ -190,22 +220,24 @@ contract Cooler {
     
 
 
-    /// @notice cancel a loan request and return collateral
-    /// @param reqID index of request in requests[]
-    function rescind (uint256 reqID) external {
-        if (msg.sender != owner) 
-            revert OnlyApproved();
+    // /// @notice cancel a loan request and return collateral
+    // /// @param reqID index of request in requests[]
+    // function rescind (uint256 reqID) external {
+    //     if (msg.sender != owner) 
+    //         revert OnlyApproved();
 
-        factory.newEvent(reqID, CoolerFactory.Events.Rescind);
+    //     factory.newEvent(reqID, CoolerFactory.Events.Rescind);
 
-        Request storage req = requests[reqID];
+    //     Request storage req = requests[reqID];
 
-        if (!req.active)
-            revert Deactivated();
+    //     if (!req.active)
+    //         revert Deactivated();
         
-        req.active = false;
-        collateral.transfer(owner, collateralFor(req.amount, req.loanToCollateral)); 
-    }
+    //     req.active = false;
+    //     collateral.transfer(owner, collateralFor(req.amount, req.loanToCollateral)); 
+    // }
+
+
 
     /// @notice repay a loan to recoup collateral
     /// @param loanID index of loan in loans[]
@@ -263,7 +295,6 @@ contract Cooler {
 
 
     // Lender
-
     /// @notice fill a requested loan as a lender
     /// @param reqID index of request in requests[]
     /// @param loanID index of loan in loans[]
@@ -286,6 +317,7 @@ contract Cooler {
         );
         debt.transferFrom(msg.sender, owner, req.amount);
     }
+
 
     /// @notice change 'rollable' status of loan
     /// @param loanID index of loan in loans[]
@@ -346,6 +378,7 @@ contract Cooler {
         return amount * decimals / loanToCollateral;
     }
 
+
     /// @notice compute interest cost on amount for duration at given annualized rate
     /// @param amount of debt tokens
     /// @param rate of interest (annualized)
@@ -355,6 +388,8 @@ contract Cooler {
         uint256 interest = rate * duration / 365 days;
         return amount * interest / decimals;
     }
+
+
 
     /// @notice check if given loan is in default
     /// @param loanID index of loan in loans[]

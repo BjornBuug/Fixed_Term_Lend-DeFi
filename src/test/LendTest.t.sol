@@ -14,6 +14,7 @@ contract ContractTest is Test {
     address borrower = address(0x1);
     address lender = address(0x2);
 
+    // Import all the 
     Treasury private treasury;
     CoolerFactory private factory;
     Cooler private cooler;
@@ -40,8 +41,8 @@ contract ContractTest is Test {
         clearingHouse = new ClearingHouse(address(this), address(this), gOHM, dai, factory, address(treasury), budget); 
 
         uint mintAmount = 6e24;  // Funds the trasury with 2 million
+        
         // dai.mint(address(treasury), mintAmount);
-
         // clearingHouse.fund(mintAmount);
         
         // Create a pool gOHM as collateral and dai to borrow
@@ -53,9 +54,10 @@ contract ContractTest is Test {
 
     }
 
+
     function testRequest() public returns(uint reqID) {
         uint collateral = 1e18; // one gOHM token
-        uint amount = collateral * loanToCollateral / 1e18;
+        uint amount = collateral * loanToCollateral / 1e18; // Equalivalent of 
 
         vm.startPrank(borrower);
         // Approve the cooler contract to spend my collateral
@@ -63,19 +65,30 @@ contract ContractTest is Test {
 
         // Create a loan request
         reqID = cooler.request(amount, interest, loanToCollateral, duration);
+        console2.log("Returned reqID", reqID);
         vm.stopPrank();
 
         uint coolerBalanceBefore = gOHM.balanceOf(address(cooler));
         uint coolerBalanceAfter = gOHM.balanceOf(address(cooler)) + collateral;
 
-        console2.log("Cooler contract before", coolerBalanceBefore);
+        console2.log("Cooler balance before Request", coolerBalanceBefore);
 
         // Expect collateral to be transsfered
         assertEq(coolerBalanceAfter, 2000000000000000000);
-        console2.log("Cooler contract after", coolerBalanceBefore + collateral);
+        console2.log("Cooler balance after request", coolerBalanceBefore + collateral);
+
+        /** testRescind */
+        
+        (,,,, bool active) = cooler.requests(reqID);
+        console2.log("The status of active value after loan Request", active);
+
+        // Test to resign this request 
+        cooler.rescind(reqID);
+        console2.log("Cooler contract After Resign", coolerBalanceBefore);
+        // // Active tag set to zero
+        // assertTrue(!active);
+        console2.log("The status of active value after Rescind", active);
     }
-
-
 
 
 }

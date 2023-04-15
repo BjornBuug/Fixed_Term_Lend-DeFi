@@ -6,10 +6,10 @@ import "./lib/ERC20.sol";
 
 
 /// @notice the Cooler Factory creates new Cooler escrow contracts
-contract CoolerFactory {
+contract CoolerFactory { 
     // A gloabl event when a loan request is created
     event Request(address cooler, address collateral, address debt, uint256 reqID);
-
+    
     // A global event when a loan request is rescinded
     event Rescind (address cooler, uint256 reqID);
 
@@ -35,6 +35,7 @@ contract CoolerFactory {
     function generate(ERC20 collateral, ERC20 debt) external returns(address cooler) {
         // return address if cooler exists
         cooler = coolerFor[msg.sender][collateral][debt];
+        
         // else
         if(cooler == address(0)) {
             // Create an instance of Cooler escrow contracts
