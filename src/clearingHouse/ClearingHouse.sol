@@ -56,10 +56,12 @@ contract ClearingHouse {
     /// @param cooler contract requesting loan
     /// @param id of loan in escrow contract
     function clear (Cooler cooler, uint256 id) external returns (uint256) {
+        // The caller should be Operator/Caller
         if (msg.sender != operator) 
             revert OnlyApproved();
 
         // Validate escrow
+        // Check that the Cooler contract is created by factory and it's not a milicious contracts
         if (!factory.created(address(cooler))) 
             revert OnlyFromFactory();
         if (cooler. collateral() != gOHM || cooler.debt() != dai)
@@ -80,8 +82,9 @@ contract ClearingHouse {
         if (duration > maxDuration) 
             revert DurationMaximum();
 
-        // Clear loan
+        // Cooler is approved to transfer the loan amount
         dai.approve(address(cooler), amount);
+        // Then the function is called for the request ID
         return cooler.clear(id);
     }
 

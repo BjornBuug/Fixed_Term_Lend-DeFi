@@ -86,7 +86,7 @@ contract ClearingHouse {
 
         // Clear loan
         dai.approve(address(cooler), amount);
-        return cooler.clear(id);
+        return cooler.clear(id, time);
     }
 
     /// @notice toggle 'rollable' status of a loan

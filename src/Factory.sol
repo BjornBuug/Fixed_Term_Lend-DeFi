@@ -21,7 +21,7 @@ contract CoolerFactory {
 
     // Mapping to prevent duplicate coolers
     mapping(address => mapping(ERC20 => mapping(ERC20 => address))) private coolerFor;
-
+    
     // Mapping to query Coolers for Collateral-Dept pair
     mapping(ERC20 => mapping(ERC20 => address[])) public coolersFor;
 

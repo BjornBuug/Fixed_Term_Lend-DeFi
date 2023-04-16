@@ -42,16 +42,17 @@ contract ContractTest is Test {
 
         uint mintAmount = 6e24;  // Funds the trasury with 2 million
         
-        // dai.mint(address(treasury), mintAmount);
-        // clearingHouse.fund(mintAmount);
+        dai.mint(address(treasury), mintAmount);
+        clearingHouse.fund(mintAmount);
         
         // Create a pool gOHM as collateral and dai to borrow
         cooler = Cooler(factory.generate(gOHM, dai));
+        console2.log("Cooler address",address(cooler));
 
         // Mint to alice 2 millions tokens
         gOHM.mint(borrower,mintAmount);
         gOHM.mint(address(this), mintAmount);
-
+        dai.mint(address(this), mintAmount);
     }
 
 
@@ -59,14 +60,12 @@ contract ContractTest is Test {
         uint collateral = 1e18; // one gOHM token
         uint amount = collateral * loanToCollateral / 1e18; // Equalivalent of 
 
-        vm.startPrank(borrower);
         // Approve the cooler contract to spend my collateral
         gOHM.approve(address(cooler), collateral);
 
         // Create a loan request
         reqID = cooler.request(amount, interest, loanToCollateral, duration);
         console2.log("Returned reqID", reqID);
-        vm.stopPrank();
 
         uint coolerBalanceBefore = gOHM.balanceOf(address(cooler));
         uint coolerBalanceAfter = gOHM.balanceOf(address(cooler)) + collateral;
@@ -76,18 +75,42 @@ contract ContractTest is Test {
         // Expect collateral to be transsfered
         assertEq(coolerBalanceAfter, 2000000000000000000);
         console2.log("Cooler balance after request", coolerBalanceBefore + collateral);
+    }
 
-        /** testRescind */
-        
+
+    function testRescind() public {
+        uint256 reqID = testRequest();
+
+        // Get the active value from requests[reqID] using destructing
         (,,,, bool active) = cooler.requests(reqID);
-        console2.log("The status of active value after loan Request", active);
 
-        // Test to resign this request 
+        console2.log("The status of active value before loan rescind", active);
+        address owner = cooler.owner();
+
+        console2.log("Owner of active loan", owner, borrower);
+
+        // Check if the loan is active
+        assertTrue(active);
+
+        // Rescind the loan
         cooler.rescind(reqID);
-        console2.log("Cooler contract After Resign", coolerBalanceBefore);
-        // // Active tag set to zero
-        // assertTrue(!active);
-        console2.log("The status of active value after Rescind", active);
+
+        (,,,, active) = cooler.requests(reqID);
+        console2.log("The status of active value after rescind", active, address(this));
+
+        // Check that the loan is inactive/false;
+        assertTrue(!active);
+
+        // test if the collateral was returned to the borrower
+
+    }
+
+
+    function testClear() public {
+        setUp();
+        uint256 reqID = testRequest();
+        clearingHouse.clear(cooler, reqID, time);
+        
     }
 
 

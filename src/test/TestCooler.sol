@@ -192,7 +192,7 @@ contract Cooler {
     /// @notice fill a requested loan as a lender
     /// @param reqID index of request in requests[]
     /// @param loanID index of loan in loans[]
-    function clear (uint256 reqID) external returns (uint256 loanID) {
+    function clear (uint256 reqID, uint256 time) external returns (uint256 loanID) {
         Request storage req = requests[reqID];
 
         factory.newEvent(reqID, CoolerFactory.Events.Clear);
@@ -203,7 +203,7 @@ contract Cooler {
 
         uint256 interest = interestFor(req.amount, req.interest, req.duration);
         uint256 collat = collateralFor(req.amount, req.loanToCollateral);
-        uint256 expiration = block.timestamp + req.duration;
+        uint256 expiration = time + req.duration;
 
         loanID = loans.length;
         loans.push(

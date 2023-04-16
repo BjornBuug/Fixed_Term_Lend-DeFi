@@ -135,9 +135,10 @@ contract Cooler {
         collateral.transfer(owner, collateralFor(req.amount, req.loanToCollateral));
 
     }
+    
 
 
-    /// @notice fill request to the borrower as a lender
+    /// @notice fill request to the borrower as a lender once This contract is approved on the ClearingHouse Levele
     /// @param reqID index of the requests[]
     /// @param loanId index of the loans[]
     function clear(uint256 reqID) external returns(uint loanId) {
@@ -175,11 +176,13 @@ contract Cooler {
     /// @param rate of interest (annulized)
     /// @param duration of loan in seconds
     /// @return the interest rate of the debts tokens
-    function interestFor(uint256 amount, uint256 rate, uint256 duration) external pure returns(uint256) {
+    function interestFor(uint256 amount, uint256 rate, uint256 duration) public pure returns(uint256) {
         // Compute interest
         uint256 interest = rate * duration / 365 days;
         return amount * interest / decimals;
     }
+
+
 
 
 
@@ -294,29 +297,29 @@ contract Cooler {
     }
 
 
-    // Lender
-    /// @notice fill a requested loan as a lender
-    /// @param reqID index of request in requests[]
-    /// @param loanID index of loan in loans[]
-    function clear (uint256 reqID) external returns (uint256 loanID) {
-        Request storage req = requests[reqID];
+    // // Lender
+    // /// @notice fill a requested loan as a lender
+    // /// @param reqID index of request in requests[]
+    // /// @param loanID index of loan in loans[]
+    // function clear (uint256 reqID) external returns (uint256 loanID) {
+    //     Request storage req = requests[reqID];
 
-        factory.newEvent(reqID, CoolerFactory.Events.Clear);
+    //     factory.newEvent(reqID, CoolerFactory.Events.Clear);
 
-        if (!req.active) 
-            revert Deactivated();
-        else req.active = false;
+    //     if (!req.active) 
+    //         revert Deactivated();
+    //     else req.active = false;
 
-        uint256 interest = interestFor(req.amount, req.interest, req.duration);
-        uint256 collat = collateralFor(req.amount, req.loanToCollateral);
-        uint256 expiration = block.timestamp + req.duration;
+    //     uint256 interest = interestFor(req.amount, req.interest, req.duration);
+    //     uint256 collat = collateralFor(req.amount, req.loanToCollateral);
+    //     uint256 expiration = block.timestamp + req.duration;
 
-        loanID = loans.length;
-        loans.push(
-            Loan(req, req.amount + interest, collat, expiration, true, msg.sender)
-        );
-        debt.transferFrom(msg.sender, owner, req.amount);
-    }
+    //     loanID = loans.length;
+    //     loans.push(
+    //         Loan(req, req.amount + interest, collat, expiration, true, msg.sender)
+    //     );
+    //     debt.transferFrom(msg.sender, owner, req.amount);
+    // }
 
 
     /// @notice change 'rollable' status of loan
@@ -379,15 +382,15 @@ contract Cooler {
     }
 
 
-    /// @notice compute interest cost on amount for duration at given annualized rate
-    /// @param amount of debt tokens
-    /// @param rate of interest (annualized)
-    /// @param duration of loan in seconds
-    /// @return interest as a number of debt tokens
-    function interestFor(uint256 amount, uint256 rate, uint256 duration) public pure returns (uint256) {
-        uint256 interest = rate * duration / 365 days;
-        return amount * interest / decimals;
-    }
+    // /// @notice compute interest cost on amount for duration at given annualized rate
+    // /// @param amount of debt tokens
+    // /// @param rate of interest (annualized)
+    // /// @param duration of loan in seconds
+    // /// @return interest as a number of debt tokens
+    // function interestFor(uint256 amount, uint256 rate, uint256 duration) public pure returns (uint256) {
+    //     uint256 interest = rate * duration / 365 days;
+    //     return amount * interest / decimals;
+    // }
 
 
 
