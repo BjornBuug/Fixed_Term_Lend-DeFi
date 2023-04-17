@@ -36,6 +36,13 @@ contract ContractTest is Test {
 
         vm.label(address(borrower), "Borrower");
         vm.label(address(lender), "Lender");
+        vm.label(address(treasury), "Treasury Contract");
+        vm.label(address(gOHM), "gOHM Token");
+        vm.label(address(dai), "Dai Token");
+        vm.label(address(factory), "Cooler Factory Contract");
+        vm.label(address(clearingHouse), "Clearing House Contract");
+        vm.label(address(cooler), "Cooler Contract");
+        vm.label(address(this), "This contract");
 
         factory = new CoolerFactory();
         clearingHouse = new ClearingHouse(address(this), address(this), gOHM, dai, factory, address(treasury), budget); 
@@ -102,16 +109,60 @@ contract ContractTest is Test {
         assertTrue(!active);
 
         // test if the collateral was returned to the borrower
-
     }
 
 
-    function testClear() public {
+    function testClear() public returns (uint256 loanId) {
         setUp();
+      
         uint256 reqID = testRequest();
-        clearingHouse.clear(cooler, reqID, time);
-        
+        loanId = clearingHouse.clear(cooler, reqID, time);
+
     }
+
+
+
+    function testRepay() public {
+        uint loanId = testClear();
+
+        // Get the balance of the lender(clearingHouse) and borrower before
+        uint256 balancegOHMbefore = gOHM.balanceOf(address(address(this))); // 5999999000000000000000000
+        uint256 balanceDaiBefore = dai.balanceOf(address(clearingHouse)); // 1997500000000000000000000 
+
+
+        (,uint amount, uint256 collateral, ,,) = cooler.loans(loanId);
+        uint256 repaidAmount50 = amount * 50 / 100;
+        uint256 collateral50 = collateral * 50 / 100;
+
+        // Address(this) should approve dai transfer because (this) interact with cool contract to repay the loan
+        dai.approve(address(cooler), repaidAmount50); 
+        cooler.repay(loanId, repaidAmount50, time);
+
+        // Get the balance of the lender(clearingHouse) and borrower after
+        uint256 balancegOHMAfter = gOHM.balanceOf(address(address(this))); // Collateral
+        uint256 balanceDaiAfter = dai.balanceOf(address(clearingHouse)); // Debt tokens
+        // Expect that collateral has been returned
+        assertEq(balancegOHMAfter, balancegOHMbefore + collateral50);
+        assertEq(balanceDaiAfter, balanceDaiBefore + repaidAmount50);
+
+    }
+
+
+
+    // // A request is converted to loan, once the lender clears it
+    // struct Loan {
+    //     Request request;
+    //     // The amount of debt owed
+    //     uint256 amount;
+    //     // The amount of collaterak pledged
+    //     uint256 collateral;
+    //     // the time when the loan defaults
+    //     uint256 expiry;
+    //     // Whether the loan can be rolled over
+    //     bool rollable;
+    //     // The lender's address
+    //     address lender;
+    // }
 
 
 }

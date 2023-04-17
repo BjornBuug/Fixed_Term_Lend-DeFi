@@ -135,10 +135,10 @@ contract Cooler {
     /// @notice repay a loan to recoup collateral
     /// @param loanID index of loan in loans[]
     /// @param repaid debt tokens to repay
-    function repay (uint256 loanID, uint256 repaid) external {
+    function repay (uint256 loanID, uint256 repaid, uint256 time) external {
         Loan storage loan = loans[loanID];
 
-        if (block.timestamp > loan.expiry) 
+        if (time > loan.expiry) 
             revert Default();
         
         uint256 decollateralized = loan.collateral * repaid / loan.amount;
@@ -153,6 +153,8 @@ contract Cooler {
         debt.transferFrom(msg.sender, loan.lender, repaid);
         collateral.transfer(owner, decollateralized);
     }
+
+    
 
     /// @notice roll a loan over
     /// @notice uses terms from request

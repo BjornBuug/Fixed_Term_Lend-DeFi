@@ -156,7 +156,7 @@ contract Cooler {
         // compute Collateral
         uint256 collat = collateralFor(req.amount, req.loanToCollateral);
         uint256 expiration = block.timestamp + req.duration;
-
+        
         // Get loanId
         loanId = loans.length;
         loans.push(
@@ -168,6 +168,34 @@ contract Cooler {
 
         // Emit Event
         factory.newEvent(reqID, CoolerFactory.Events.Clear);
+    }
+
+    /// @notice Reapay part of the loan or the total amount of the loan
+    /// @param loanId index of the loans[]
+    /// @param repaid amount of repaid loan
+    function repay(uint256 loanId, uint256 repaid) external {
+        // Get the loan data from the storage based on the loanId
+        Loan storage loan = loans[loanId];
+        
+        // Check if the loan is not expired
+        if(block.timestamp > loan.expiry) {
+            revert Default();
+        }
+
+        // Compute the amount of collateral to send to the borrower based on repaid amount
+        uint256 decollateralized = loan.collateral * repaid / loan.amount;
+
+        if( repaid == loan.amount) delete loans[loanId];
+        
+        else {
+            loan.amount -= repaid;
+            loan.collateral -= decollateralized;
+        }
+        
+        // Send the repaid amount to the lender
+        debt.transferFrom(msg.sender, loan.lender, repaid);
+        collateral.transfer(owner, decollateralized);
+
     }
 
 
@@ -242,27 +270,27 @@ contract Cooler {
 
 
 
-    /// @notice repay a loan to recoup collateral
-    /// @param loanID index of loan in loans[]
-    /// @param repaid debt tokens to repay
-    function repay (uint256 loanID, uint256 repaid) external {
-        Loan storage loan = loans[loanID];
+    // /// @notice repay a loan to recoup collateral
+    // /// @param loanID index of loan in loans[]
+    // /// @param repaid debt tokens to repay
+    // function repay (uint256 loanID, uint256 repaid) external {
+    //     Loan storage loan = loans[loanID];
 
-        if (block.timestamp > loan.expiry) 
-            revert Default();
+    //     if (block.timestamp > loan.expiry) 
+    //         revert Default();
         
-        uint256 decollateralized = loan.collateral * repaid / loan.amount;
+    //     uint256 decollateralized = loan.collateral * repaid / loan.amount;
 
-        if (repaid == loan.amount) delete loans[loanID];
+    //     if (repaid == loan.amount) delete loans[loanID];
 
-        else {
-            loan.amount -= repaid;
-            loan.collateral -= decollateralized;
-        }
+    //     else {
+    //         loan.amount -= repaid;
+    //         loan.collateral -= decollateralized;
+    //     }
 
-        debt.transferFrom(msg.sender, loan.lender, repaid);
-        collateral.transfer(owner, decollateralized);
-    }
+    //     debt.transferFrom(msg.sender, loan.lender, repaid);
+    //     collateral.transfer(owner, decollateralized);
+    // }
 
     /// @notice roll a loan over
     /// @notice uses terms from request
