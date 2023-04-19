@@ -77,8 +77,9 @@ contract ContractTest is Test {
         uint coolerBalanceBefore = gOHM.balanceOf(address(cooler));
         uint coolerBalanceAfter = gOHM.balanceOf(address(cooler)) + collateral;
 
+        uint BalanceBeforeThis = gOHM.balanceOf(address(this));
         console2.log("Cooler balance before Request", coolerBalanceBefore);
-
+        console2.log("This contract balance afyer requests", BalanceBeforeThis);
         // Expect collateral to be transsfered
         assertEq(coolerBalanceAfter, 2000000000000000000);
         console2.log("Cooler balance after request", coolerBalanceBefore + collateral);
@@ -86,15 +87,16 @@ contract ContractTest is Test {
 
 
     function testRescind() public {
+        uint256 balance0 = gOHM.balanceOf((address(this))); 
+        uint coolerBalanceBefore = gOHM.balanceOf(address(cooler));
         uint256 reqID = testRequest();
 
         // Get the active value from requests[reqID] using destructing
-        (,,,, bool active) = cooler.requests(reqID);
+        (uint256 amount,,uint256 ltc,, bool active) = cooler.requests(reqID);
 
         console2.log("The status of active value before loan rescind", active);
-        address owner = cooler.owner();
-
-        console2.log("Owner of active loan", owner, borrower);
+        console2.log("This address balance in gOHM", balance0);
+        console2.log("Cooler balance in gOHM", coolerBalanceBefore);
 
         // Check if the loan is active
         assertTrue(active);
@@ -102,12 +104,15 @@ contract ContractTest is Test {
         // Rescind the loan
         cooler.rescind(reqID);
 
-        (,,,, active) = cooler.requests(reqID);
-        console2.log("The status of active value after rescind", active, address(this));
+        (amount,,ltc,, active) = cooler.requests(reqID);
 
-        // Check that the loan is inactive/false;
+        console2.log("The status of active value after rescind", active);
+
         assertTrue(!active);
 
+        // assertTrue(balance0 + (amount * 1e18 / ltc) == gOHM.balanceOf(address(this)));
+        // Transfer the Debt tokens to the borrower
+        // debt.transferFrom(msg.sender, owner, req.amount);
         // test if the collateral was returned to the borrower
     }
 
@@ -143,26 +148,11 @@ contract ContractTest is Test {
         uint256 balanceDaiAfter = dai.balanceOf(address(clearingHouse)); // Debt tokens
         // Expect that collateral has been returned
         assertEq(balancegOHMAfter, balancegOHMbefore + collateral50);
-        assertEq(balanceDaiAfter, balanceDaiBefore + repaidAmount50);
-
+        assertEq(balanceDaiAfter, balanceDaiBefore + repaidAmount50);   
     }
 
+    
 
-
-    // // A request is converted to loan, once the lender clears it
-    // struct Loan {
-    //     Request request;
-    //     // The amount of debt owed
-    //     uint256 amount;
-    //     // The amount of collaterak pledged
-    //     uint256 collateral;
-    //     // the time when the loan defaults
-    //     uint256 expiry;
-    //     // Whether the loan can be rolled over
-    //     bool rollable;
-    //     // The lender's address
-    //     address lender;
-    // }
 
 
 }

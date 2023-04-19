@@ -88,13 +88,25 @@ contract ClearingHouse {
         return cooler.clear(id);
     }
 
-    /// @notice toggle 'rollable' status of a loan
-    function toggleRoll(Cooler cooler, uint256 loanID) external {
-        if (msg.sender != operator) 
-            revert OnlyApproved();
 
-        cooler.toggleRoll(loanID);
-    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     // Oversight
 
@@ -114,8 +126,8 @@ contract ClearingHouse {
         token.transfer(treasury, amount);
     }
 
-    // Management
 
+    // Management
     /// @notice operator or overseer can set a new address
     /// @dev using a push/pull model for safety
     function push (address newAddress) external {
@@ -126,6 +138,7 @@ contract ClearingHouse {
         else revert OnlyApproved();
     }
 
+    
     /// @notice new operator or overseer can pull role once pushed
     function pull () external {
         if (msg.sender == pendingOverseer) {

@@ -13,6 +13,7 @@ contract Cooler {
     
     // Errors
     error OnlyApproved();
+    error OnlyLender();
     error Deactivated();
     error Default();
     error NoDefault();
@@ -36,7 +37,6 @@ contract Cooler {
         // Any lender can clear an active loan request
         bool active;
     }
-
 
     Loan[] public loans;
 
@@ -108,10 +108,10 @@ contract Cooler {
 
         // Transfer user's collateral to this contract
         collateral.transferFrom(msg.sender, address(this), collateralFor(_amount, _loanToCollateral));
-
+        
         // Emit an Event
         factory.newEvent(reqId, CoolerFactory.Events.Request);
-        
+
     }
 
 
@@ -170,6 +170,34 @@ contract Cooler {
         factory.newEvent(reqID, CoolerFactory.Events.Clear);
     }
 
+
+    /// @notice Roll a loan over
+    /// @param loanId amount of repaid loan
+    function roll(uint256 loanId) external {
+        Loan storage loan = loans[loanId];
+        Request memory req = requests[loanId];
+
+        // Check if the loan is not expiry
+        if(block.timestamp > loan.expiry)
+            revert Default(); 
+
+        // Check if the loan is rollable or not
+        if(!loan.rollable) {
+            revert NotRollable();
+        }
+
+        uint256 newColl = collateralFor(loan.amount, req.loanToCollateral) - loan.collateral; // 2oGHM - 1oGMH
+        uint256 newInterest = interestFor(loan.amount, req.interest, req.duration);
+
+        loan.amount += newInterest; 
+        loan.collateral += newColl;
+        loan.expiry += req.duration;
+
+        collateral.transferFrom(msg.sender, address(this), newColl);
+
+    }
+
+
     /// @notice Reapay part of the loan or the total amount of the loan
     /// @param loanId index of the loans[]
     /// @param repaid amount of repaid loan
@@ -199,6 +227,40 @@ contract Cooler {
     }
 
 
+    /// @notice set rollable option to false
+    /// @param loanId loanId of the loan
+    function toggleRoll(uint256 loanId) external returns(bool) {
+        Loan storage loan = loans[loanId];
+
+        if(msg.sender != loan.lender) {
+            revert OnlyLender();
+        }
+        loan.rollable = !loan.rollable;
+        return loan.rollable;
+
+    }
+
+
+    /// @notice Defaulted function to send the collateral to the lender
+    /// @param loanId index of the loans[]
+    function defaulted(uint256 loanId) external returns(uint256) {
+        Loan storage loan = loans[loanId];
+        delete loans[loanId];
+        
+        if(msg.sender != loan.lender) {
+            revert OnlyLender();
+        }
+
+        // Check if the the loan is defaulted
+        if(block.timestamp <= loan.expiry) 
+            revert NoDefault();
+
+        // Transfer collateral to the lender;
+        collateral.transfer(loan.lender, loan.collateral);
+        return loan.collateral;
+    }
+
+
     /// @notice Compute interest COST for a given amount, duration, an annulized rate
     /// @param amount of debts tokens
     /// @param rate of interest (annulized)
@@ -208,6 +270,13 @@ contract Cooler {
         // Compute interest
         uint256 interest = rate * duration / 365 days;
         return amount * interest / decimals;
+    }
+
+    /// @notice compute collateral needed for loan amount at given loan to collateral ratio
+    /// @param amount of collateral tokens
+    /// @param loanToCollateral ratio for loan
+    function collateralFor(uint256 amount, uint256 loanToCollateral) public pure returns (uint256) {
+        return amount * decimals / loanToCollateral;
     }
 
 
@@ -292,37 +361,37 @@ contract Cooler {
     //     collateral.transfer(owner, decollateralized);
     // }
 
-    /// @notice roll a loan over
-    /// @notice uses terms from request
-    /// @param loanID index of loan in loans[]
-    function roll (uint256 loanID) external {
-        Loan storage loan = loans[loanID];
-        Request memory req = loan.request;
+    // /// @notice roll a loan over
+    // /// @notice uses terms from request
+    // /// @param loanID index of loan in loans[]
+    // function roll (uint256 loanID) external {
+    //     Loan storage loan = loans[loanID];
+    //     Request memory req = loan.request;
 
-        if (block.timestamp > loan.expiry) 
-            revert Default();
+    //     if (block.timestamp > loan.expiry) 
+    //         revert Default();
 
-        if (!loan.rollable)
-            revert NotRollable();
+    //     if (!loan.rollable)
+    //         revert NotRollable();
 
-        uint256 newCollateral = collateralFor(loan.amount, req.loanToCollateral) - loan.collateral;
-        uint256 newDebt = interestFor(loan.amount, req.interest, req.duration);
+    //     uint256 newCollateral = collateralFor(loan.amount, req.loanToCollateral) - loan.collateral;
+    //     uint256 newDebt = interestFor(loan.amount, req.interest, req.duration);
 
-        loan.amount += newDebt;
-        loan.expiry += req.duration;
-        loan.collateral += newCollateral;
+    //     loan.amount += newDebt;
+    //     loan.expiry += req.duration;
+    //     loan.collateral += newCollateral;
         
-        collateral.transferFrom(msg.sender, address(this), newCollateral);
-    }
+    //     collateral.transferFrom(msg.sender, address(this), newCollateral);
+    // }
     
 
-    /// @notice delegate voting power on collateral
-    /// @param to address to delegate
-    function delegate (address to) external {
-        if (msg.sender != owner) 
-            revert OnlyApproved();
-        IDelegateERC20(address(collateral)).delegate(to);
-    }
+    // /// @notice delegate voting power on collateral
+    // /// @param to address to delegate
+    // function delegate (address to) external {
+    //     if (msg.sender != owner) 
+    //         revert OnlyApproved();
+    //     IDelegateERC20(address(collateral)).delegate(to);
+    // }
 
 
     // // Lender
@@ -350,64 +419,60 @@ contract Cooler {
     // }
 
 
-    /// @notice change 'rollable' status of loan
-    /// @param loanID index of loan in loans[]
-    /// @return bool new 'rollable' status
-    function toggleRoll(uint256 loanID) external returns (bool) {
-        Loan storage loan = loans[loanID];
+    // /// @notice change 'rollable' status of loan
+    // /// @param loanID index of loan in loans[]
+    // /// @return bool new 'rollable' status
+    // function toggleRoll(uint256 loanID) external returns (bool) {
+    //     Loan storage loan = loans[loanID];
 
-        if (msg.sender != loan.lender)
-            revert OnlyApproved();
+    //     if (msg.sender != loan.lender)
+    //         revert OnlyApproved();
 
-        loan.rollable = !loan.rollable;
-        return loan.rollable;
-    }
+    //     loan.rollable = !loan.rollable;
+    //     return loan.rollable;
+    // }
 
-    /// @notice send collateral to lender upon default
-    /// @param loanID index of loan in loans[]
-    /// @return uint256 collateral amount
-    function defaulted (uint256 loanID) external returns (uint256) {
-        Loan memory loan = loans[loanID];
-        delete loans[loanID];
 
-        if (block.timestamp <= loan.expiry) 
-            revert NoDefault();
+    // /// @notice send collateral to lender upon default
+    // /// @param loanID index of loan in loans[]
+    // /// @return uint256 collateral amount
+    // function defaulted (uint256 loanID) external returns (uint256) {
+    //     Loan memory loan = loans[loanID];
+    //     delete loans[loanID];
 
-        collateral.transfer(loan.lender, loan.collateral);
-        return loan.collateral;
-    }
+    //     if (block.timestamp <= loan.expiry) 
+    //         revert NoDefault();
 
-    /// @notice approve transfer of loan ownership to new address
-    /// @param to address to approve
-    /// @param loanID index of loan in loans[]
-    function approve (address to, uint256 loanID) external {
-        Loan memory loan = loans[loanID];
+    //     collateral.transfer(loan.lender, loan.collateral);
+    //     return loan.collateral;
+    // }
 
-        if (msg.sender != loan.lender)
-            revert OnlyApproved();
+    // /// @notice approve transfer of loan ownership to new address
+    // /// @param to address to approve
+    // /// @param loanID index of loan in loans[]
+    // function approve (address to, uint256 loanID) external {
+    //     Loan memory loan = loans[loanID];
 
-        approvals[loanID] = to;
-    }
+    //     if (msg.sender != loan.lender)
+    //         revert OnlyApproved();
 
-    /// @notice execute approved transfer of loan ownership
-    /// @param loanID index of loan in loans[]
-    function transfer (uint256 loanID) external {
-        if (msg.sender != approvals[loanID])
-            revert OnlyApproved();
+    //     approvals[loanID] = to;
+    // }
 
-        approvals[loanID] = address(0);
-        loans[loanID].lender = msg.sender;
-    }
+    // /// @notice execute approved transfer of loan ownership
+    // /// @param loanID index of loan in loans[]
+    // function transfer (uint256 loanID) external {
+    //     if (msg.sender != approvals[loanID])
+    //         revert OnlyApproved();
+
+    //     approvals[loanID] = address(0);
+    //     loans[loanID].lender = msg.sender;
+    // }
 
 
     // Views
     
-    /// @notice compute collateral needed for loan amount at given loan to collateral ratio
-    /// @param amount of collateral tokens
-    /// @param loanToCollateral ratio for loan
-    function collateralFor(uint256 amount, uint256 loanToCollateral) public pure returns (uint256) {
-        return amount * decimals / loanToCollateral;
-    }
+    
 
 
     // /// @notice compute interest cost on amount for duration at given annualized rate
@@ -422,18 +487,18 @@ contract Cooler {
 
 
 
-    /// @notice check if given loan is in default
-    /// @param loanID index of loan in loans[]
-    /// @return defaulted status
-    function isDefaulted(uint256 loanID) external view returns (bool) {
-        return block.timestamp > loans[loanID].expiry;
-    }
+    // /// @notice check if given loan is in default
+    // /// @param loanID index of loan in loans[]
+    // /// @return defaulted status
+    // function isDefaulted(uint256 loanID) external view returns (bool) {
+    //     return block.timestamp > loans[loanID].expiry;
+    // }
     
     
-    /// @notice check if given request is active
-    /// @param reqID index of request in requests[]
-    /// @return active status
-    function isActive(uint256 reqID) external view returns (bool) {
-        return requests[reqID].active;
-    }
+    // /// @notice check if given request is active
+    // /// @param reqID index of request in requests[]
+    // /// @return active status
+    // function isActive(uint256 reqID) external view returns (bool) {
+    //     return requests[reqID].active;
+    // }
 }

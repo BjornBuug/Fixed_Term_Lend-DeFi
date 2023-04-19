@@ -89,4 +89,18 @@ contract ClearingHouse {
     }
 
 
+    /// @notice Allow the lender to toggle a loan
+    /// @param cooler contract 
+    /// @param loanId loan id in escrow contract
+    function toggleRoll(Cooler cooler, uint256 loanId) external {
+        if(msg.sender != operator) {
+            revert OnlyApproved();
+        }
+
+        cooler.toggleRoll(loanId);
+    }
+
+    
+
+
 } 
