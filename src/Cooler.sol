@@ -28,9 +28,7 @@ contract Cooler {
         uint256 amount; 
         // The annualized percentage they will pay as interest
         uint256 interest;
-        // The loan to collateral ratio thet want
         // the amount of assets they are willing to put as collateral to borrow the money(borrow 10k to 20k as collateral)
-        // In this case loan to collateral is 50%
         uint256 loanToCollateral;
         // The lengh of time until the loan defaults
         uint256 duration;
@@ -246,7 +244,7 @@ contract Cooler {
     /// @notice Defaulted function to send the collateral to the lender
     /// @param loanId index of the loans[]
     function defaulted(uint256 loanId) external returns(uint256) {
-        Loan storage loan = loans[loanId];
+        Loan memory loan = loans[loanId];
         delete loans[loanId];
         
         if(msg.sender != loan.lender) {

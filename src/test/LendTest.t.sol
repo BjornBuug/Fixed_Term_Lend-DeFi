@@ -12,7 +12,7 @@ contract ContractTest is Test {
     ERC20 private dai;
 
     address borrower = address(0x1);
-    address lender = address(0x2);
+    // address lender = address(0x2);
 
     // Import all the 
     Treasury private treasury;
@@ -35,7 +35,6 @@ contract ContractTest is Test {
         dai = new ERC20("DAI", "DAI");
 
         vm.label(address(borrower), "Borrower");
-        vm.label(address(lender), "Lender");
         vm.label(address(treasury), "Treasury Contract");
         vm.label(address(gOHM), "gOHM Token");
         vm.label(address(dai), "Dai Token");
@@ -114,7 +113,7 @@ contract ContractTest is Test {
 
     function testClear() public returns (uint256 loanId) {
         setUp();
-      
+
         uint256 reqID = testRequest();
         loanId = clearingHouse.clear(cooler, reqID, time);
     }
@@ -147,13 +146,13 @@ contract ContractTest is Test {
 
 
     function testRoll() public {
-        setUp();
-        testRequest();
+        // setUp();
+        // testRequest();
         /**
-            When Roll is called, we have to check 2 states
+            When Roll is called, we have to check the 3 states
             1- If the cooler contract's balance for gGHM incresead for specific loanID
             2- If the new Interest amount has been increased by the newInterest
-            3- The expiry duraction has incresed
+            3- The expiry duration has incresed
         */
 
         uint256 loanId = testClear();
@@ -185,6 +184,40 @@ contract ContractTest is Test {
     }
 
 
+    function testToggleRoll() public {
+        testClear();
+
+        uint256 loanId = testClear();
+
+        (,,,,bool rollable, address lender) = cooler.loans(loanId);
+        assertTrue(rollable);
+
+        vm.startPrank(address(lender));
+        cooler.toggleRoll(loanId);
+        vm.stopPrank();
+
+        (,,,,rollable,) = cooler.loans(loanId);
+        assertTrue(!rollable);
+    }
+
+
+    function testDefaulted() public {
+         testClear();
+
+        uint256 loanId = testClear();
+
+        (,,uint256 collateral, uint256 expiry,, address lender0) = cooler.loans(loanId);
+        
+        uint256 lenderBalanceBef = gOHM.balanceOf(lender0);
+        console2.log("balance of lender", lenderBalanceBef);
+
+        vm.startPrank(address(lender0));
+        cooler.defaulted(loanId, expiry + 100);
+        vm.stopPrank();
+        
+        uint256 lenderBalanceAfter = gOHM.balanceOf(lender0);
+        assertEq(lenderBalanceAfter, collateral + lenderBalanceBef);
+    }  
 
 }
 
