@@ -138,7 +138,7 @@ contract Cooler {
     
 
 
-    /// @notice fill request to the borrower as a lender once This contract is approved on the ClearingHouse Levele
+    /// @notice fill request to the borrower as a lender once this contract is approved on the ClearingHouse Level
     /// @param reqID index of the requests[]
     /// @param loanId index of the loans[]
     function clear(uint256 reqID) external returns(uint loanId) {
@@ -174,22 +174,24 @@ contract Cooler {
     /// @notice Roll a loan over
     /// @param loanId amount of repaid loan
     function roll(uint256 loanId) external {
+
         Loan storage loan = loans[loanId];
         Request memory req = requests[loanId];
 
         // Check if the loan is not expiry
         if(block.timestamp > loan.expiry)
-            revert Default(); 
+            revert Default();
 
         // Check if the loan is rollable or not
         if(!loan.rollable) {
             revert NotRollable();
         }
 
+        // Compute newCool & newInterest
         uint256 newColl = collateralFor(loan.amount, req.loanToCollateral) - loan.collateral; // 2oGHM - 1oGMH
         uint256 newInterest = interestFor(loan.amount, req.interest, req.duration);
-
-        loan.amount += newInterest; 
+        
+        loan.amount += newInterest;
         loan.collateral += newColl;
         loan.expiry += req.duration;
 
@@ -271,6 +273,7 @@ contract Cooler {
         uint256 interest = rate * duration / 365 days;
         return amount * interest / decimals;
     }
+
 
     /// @notice compute collateral needed for loan amount at given loan to collateral ratio
     /// @param amount of collateral tokens

@@ -23,7 +23,6 @@ contract ClearingHouse {
     // Relevant Contracts
     ERC20 public immutable dai;
     ERC20 public immutable gOHM;
-    address public immutable treasury;
     CoolerFactory public immutable factory;
 
     // Parameter Bounds
@@ -36,8 +35,7 @@ contract ClearingHouse {
         address over,
         ERC20 g,
         ERC20 d,
-        CoolerFactory f,
-        address t
+        CoolerFactory f
     ) {
 
         operator = oper;
@@ -45,7 +43,6 @@ contract ClearingHouse {
         gOHM = g;
         dai = d;
         factory = f;
-        treasury = t;
     }
 
 

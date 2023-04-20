@@ -7,3 +7,6 @@
     3- Loan is created when a lender clears/fulfill a loan request. Debt tokens are transfer from the lender to the borrower
     and the borrowers collateral is locked in the Cooler until the loan has been Repaid
     
+
+    # Cooler + Factory = Cooler Loans
+    

@@ -109,11 +109,6 @@ contract ContractTest is Test {
         console2.log("The status of active value after rescind", active);
 
         assertTrue(!active);
-
-        // assertTrue(balance0 + (amount * 1e18 / ltc) == gOHM.balanceOf(address(this)));
-        // Transfer the Debt tokens to the borrower
-        // debt.transferFrom(msg.sender, owner, req.amount);
-        // test if the collateral was returned to the borrower
     }
 
 
@@ -122,7 +117,6 @@ contract ContractTest is Test {
       
         uint256 reqID = testRequest();
         loanId = clearingHouse.clear(cooler, reqID, time);
-
     }
 
 
@@ -151,7 +145,44 @@ contract ContractTest is Test {
         assertEq(balanceDaiAfter, balanceDaiBefore + repaidAmount50);   
     }
 
-    
+
+    function testRoll() public {
+        setUp();
+        testRequest();
+        /**
+            When Roll is called, we have to check 2 states
+            1- If the cooler contract's balance for gGHM incresead for specific loanID
+            2- If the new Interest amount has been increased by the newInterest
+            3- The expiry duraction has incresed
+        */
+
+        uint256 loanId = testClear();
+
+        uint256 collateralbeforeBal = gOHM.balanceOf(address(cooler));
+
+        (,uint256 loan0, uint256 collateral0 , uint256 expiry0,,) = cooler.loans(loanId);
+        
+        // newColl to transfer to the cooler contract, CollateralFor 
+        uint256 newColl = collateral0 * interest / 1e18;
+
+        // Compute the new interest to add to the existing amount, interestFor
+        uint256 newInerest = loan0 * interest / 1e18;
+
+        // Allow cooler function to transfer collateral from my wallet
+        gOHM.approve(address(cooler), newColl);
+        cooler.roll(loanId, time);
+
+        (,uint256 loan1, uint256 collateral1, uint256 expiry1,,) = cooler.loans(loanId);
+
+        uint256 collateralAfterBal = gOHM.balanceOf(address(cooler));
+
+        assertEq(loan1, loan0 + newInerest);
+        assertEq(collateral1, collateral0 + newColl);
+        assertEq(expiry1, expiry0 + duration);
+
+        // Make sure that the balance of cooler contract increased
+        assertEq(collateralAfterBal, collateralbeforeBal + newColl);
+    }
 
 
 

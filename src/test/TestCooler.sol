@@ -159,11 +159,11 @@ contract Cooler {
     /// @notice roll a loan over
     /// @notice uses terms from request
     /// @param loanID index of loan in loans[]
-    function roll (uint256 loanID) external {
+    function roll (uint256 loanID, uint256 time) external {
         Loan storage loan = loans[loanID];
         Request memory req = loan.request;
 
-        if (block.timestamp > loan.expiry) 
+        if (time > loan.expiry) 
             revert Default();
 
         if (!loan.rollable)
