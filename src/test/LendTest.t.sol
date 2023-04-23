@@ -53,7 +53,6 @@ contract ContractTest is Test {
         
         // Create a pool gOHM as collateral and dai to borrow
         cooler = Cooler(factory.generate(gOHM, dai));
-        console2.log("Cooler address",address(cooler));
 
         // Mint to alice 2 millions tokens
         gOHM.mint(borrower,mintAmount);
@@ -78,7 +77,7 @@ contract ContractTest is Test {
 
         uint BalanceBeforeThis = gOHM.balanceOf(address(this));
         console2.log("Cooler balance before Request", coolerBalanceBefore);
-        console2.log("This contract balance afyer requests", BalanceBeforeThis);
+        console2.log("This contract balance after requests", BalanceBeforeThis);
         // Expect collateral to be transsfered
         assertEq(coolerBalanceAfter, 2000000000000000000);
         console2.log("Cooler balance after request", coolerBalanceBefore + collateral);
@@ -149,7 +148,7 @@ contract ContractTest is Test {
         // setUp();
         // testRequest();
         /**
-            When Roll is called, we have to check the 3 states
+            When Roll is called, we have to check 3 states
             1- If the cooler contract's balance for gGHM incresead for specific loanID
             2- If the new Interest amount has been increased by the newInterest
             3- The expiry duration has incresed
