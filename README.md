@@ -10,4 +10,7 @@ Here are the steps involved:
 3- The borrower can rescind their request at any time before it has been cleared.
 
 4- When a lender clears/fulfills a loan request, a loan is created, and the debt tokens are transferred from the lender to the borrower. The borrower's collateral is locked in the Cooler until the loan has been repaid.
-    
+
+5- If the lender allows it, the borrower can change the loan terms.
+
+6- If the borrower fails to repay the loan on time, the escrow contract (Cooler) will send the held collateral to the lender. The borrower can keep the borrowed amount.
