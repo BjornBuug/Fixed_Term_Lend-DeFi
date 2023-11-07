@@ -3,7 +3,7 @@ The borrower can create different loan requests for a fixed duration with fixed 
 
 Here are the steps involved:
 
-1- The borrower creates a Cooler/Pool for their desired collateral that they want to deposit, along with the debt they would like to take in DAI/USDT tokens. This can be done using the generate() function at the CoolerFactory.
+1- The borrower creates a Pool for their desired collateral that they want to deposit, along with the debt they would like to take in DAI/USDT tokens. This can be done using the generate() function at the CoolerFactory.
 
 2- The borrower then creates a loan request that specifies the loan terms they are looking for.
 
